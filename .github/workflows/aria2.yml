@@ -189,7 +189,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           REPO_URL="$HOST/$REPO"
-          message=$(echo -e "New aria2 version detected: *${TAG_NAME}*\n\nDownload static binary (linux-x86):\n[${TAG_NAME}](${REPO_URL}/releases/download/aria2c)")
+          message=$(echo -e "New aria2 version detected: *${TAG_NAME}*\n\nDownload static binary (linux-x86):\n[${TAG_NAME}](${REPO_URL}/releases/download/${TAG_NAME}/aria2c)")
   
           curl -s -X POST "https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage" \
             -d "chat_id=$TG_CHAT_ID" \
