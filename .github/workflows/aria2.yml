@@ -1,0 +1,182 @@
+name: Aria2 CI
+
+permissions:
+  contents: write
+  actions: read
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Check out source (for tag existence)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch latest release
+        id: release
+        run: |
+          URL=$(curl -s "https://api.github.com/repos/aria2/aria2/releases/latest" \
+            | grep "browser_download_url" \
+            | grep ".tar.gz" \
+            | cut -d '"' -f4)
+          TAG=$(curl -s "https://api.github.com/repos/aria2/aria2/releases/latest" \
+            | grep '"tag_name":' \
+            | head -n1 \
+            | cut -d '"' -f4)
+
+          echo "release_url=$URL"  >> $GITHUB_OUTPUT
+          echo "release_tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Check if release/tag exists
+        id: exists
+        env:
+          TAG: ${{ steps.release.outputs.release_tag }}
+        run: |
+          if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+            echo "exists=true"  >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install base tools
+        if: steps.exists.outputs.exists == 'false'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qq build-essential wget tar bzip2 aria2
+
+      - name: Build Dependencies
+        if: steps.exists.outputs.exists == 'false'
+        env:
+          PREFIX: "/opt/aria2/build_libs"
+          CC: "gcc"
+          CXX: "g++"
+          ZLIB: "https://zlib.net/zlib-1.3.1.tar.gz"
+          OPENSSL: "https://www.openssl.org/source/openssl-3.1.8.tar.gz"
+          EXPAT: "https://github.com/libexpat/libexpat/releases/download/R_2_7_1/expat-2.7.1.tar.bz2"
+          SQLITE3: "https://www.sqlite.org/2025/sqlite-autoconf-3500200.tar.gz"
+          C_ARES: "https://github.com/c-ares/c-ares/releases/download/v1.34.5/c-ares-1.34.5.tar.gz"
+          SSH2: "https://www.libssh2.org/download/libssh2-1.11.1.tar.gz"
+        run: |
+          set -euxo pipefail
+          D=/tmp/aria2-deps
+          export CFLAGS="-Os -pipe"
+          export CXXFLAGS="-Os -pipe"
+          mkdir -p "$PREFIX" "$D" && cd "$D"
+
+          # zlib
+          aria2c --check-certificate=false -o zlib.tar.gz "$ZLIB"
+          tar zxvf zlib.tar.gz
+          cd zlib-1.3.1
+          ./configure --prefix="$PREFIX" --static
+          make -j$(nproc) && make install
+          cd "$D"
+
+          # expat
+          aria2c --check-certificate=false -o expat.tar.bz2 "$EXPAT"
+          tar jxvf expat.tar.bz2
+          cd expat-2.7.1
+          ./configure --prefix="$PREFIX" --enable-static --enable-shared
+          make -j$(nproc) && make install
+          cd "$D"
+
+          # c-ares
+          aria2c --check-certificate=false -o cares.tar.gz "$C_ARES"
+          tar zxvf cares.tar.gz
+          cd c-ares-1.34.5
+          ./configure --prefix="$PREFIX" --disable-tests --enable-static --disable-shared
+          make -j$(nproc) && make install
+          cd "$D"
+
+          # OpenSSL
+          aria2c --check-certificate=false -o openssl.tar.gz "$OPENSSL"
+          tar zxvf openssl.tar.gz
+          cd openssl-3.1.8
+          ./Configure --prefix="$PREFIX" linux-x86_64 shared
+          make -j$(nproc) && make install_sw
+          cd "$D"
+
+          # sqlite
+          aria2c --check-certificate=false -o sqlite.tar.gz "$SQLITE3"
+          tar zxvf sqlite.tar.gz
+          cd sqlite-autoconf-3500200
+          ./configure --prefix="$PREFIX" --enable-static --enable-shared
+          make -j$(nproc) && make install
+          cd "$D"
+
+          # libssh2
+          aria2c --check-certificate=false -o libssh2.tar.gz "$SSH2"
+          tar zxvf libssh2.tar.gz
+          cd libssh2-1.11.1
+          rm -f $PREFIX/lib/pkgconfig/libssh2.pc
+          ./configure --without-libgcrypt --with-openssl --without-wincng \
+                      --prefix="$PREFIX" --enable-static --disable-shared
+          make -j$(nproc) && make install
+          cd "$D"
+
+          # cleanup
+          rm -rf c-ares* sqlite-autoconf* zlib-* expat-* openssl-* libssh2-*
+
+      - name: Download aria2
+        if: steps.exists.outputs.exists == 'false'
+        env:
+          URL: ${{ steps.release.outputs.release_url }}
+        run: |
+          curl -LsS -o tarball "$URL"
+          mkdir aria2
+          tar -xvzf tarball -C aria2 --strip-components=1
+          rm -f tarball
+
+      - name: Configure and compile
+        if: steps.exists.outputs.exists == 'false'
+        env:
+          PKG_CONFIG_PATH: /opt/aria2/build_libs/lib/pkgconfig
+          LD_LIBRARY_PATH: /opt/aria2/build_libs/lib
+        run: |
+          set -euxo pipefail
+          export CFLAGS="-Os -pipe"
+          export CXXFLAGS="-Os -pipe"
+          export LDFLAGS="-s"
+          
+          cd aria2
+          ./configure \
+            --prefix=/usr \
+            --without-libxml2 \
+            --without-libgcrypt \
+            --with-openssl \
+            --without-libnettle \
+            --without-gnutls \
+            --without-libgmp \
+            --disable-metalink \
+            --disable-rpc \
+            --disable-ftp \
+            --disable-bittorrent \
+            --disable-rpc \
+            --with-libssh2 \
+            --with-sqlite3 \
+            --with-ca-bundle='/etc/ssl/certs/ca-certificates.crt' \
+            ARIA2_STATIC=yes \
+            --enable-shared=no
+          make -j$(nproc)
+          strip --strip-unneeded src/aria2c
+
+      - name: Upload aria2c binary
+        if: steps.exists.outputs.exists == 'false'
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: aria2-static
+          path: aria2/src/aria2c
+
+      - name: Create GitHub Release
+        if: steps.exists.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2.3.2
+        with:
+          tag_name: ${{ steps.release.outputs.release_tag }}
+          name: Aria2 ${{ steps.release.outputs.release_tag }}
+          files: aria2/src/aria2c
+
+        
