@@ -47,7 +47,7 @@ jobs:
         if: steps.exists.outputs.exists == 'false'
         run: |
           sudo apt-get update
-          sudo apt-get install -qq build-essential wget tar bzip2 aria2
+          sudo apt-get install -qq build-essential wget tar bzip2 aria2 upx-ucl
 
       - name: Build Dependencies
         if: steps.exists.outputs.exists == 'false'
@@ -64,8 +64,8 @@ jobs:
         run: |
           set -euxo pipefail
           D=/tmp/aria2-deps
-          export CFLAGS="-Os -pipe"
-          export CXXFLAGS="-Os -pipe"
+          export CFLAGS="-O2 -pipe"
+          export CXXFLAGS="-O2 -pipe"
           mkdir -p "$PREFIX" "$D" && cd "$D"
 
           # zlib
@@ -138,8 +138,8 @@ jobs:
           LD_LIBRARY_PATH: /opt/aria2/build_libs/lib
         run: |
           set -euxo pipefail
-          export CFLAGS="-Os -pipe"
-          export CXXFLAGS="-Os -pipe"
+          export CFLAGS="-O2 -pipe"
+          export CXXFLAGS="-O2 -pipe"
           export LDFLAGS="-s"
           
           cd aria2
@@ -162,7 +162,8 @@ jobs:
             ARIA2_STATIC=yes \
             --enable-shared=no
           make -j$(nproc)
-          strip --strip-unneeded src/aria2c
+          strip --strip-all src/aria2c
+          upx --best --lzma aria2/src/aria2c
 
       - name: Upload aria2c binary
         if: steps.exists.outputs.exists == 'false'
