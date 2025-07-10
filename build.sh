@@ -72,11 +72,9 @@ setup_libiconv() {
   cd -
 }
 
-prepare_libxml2() {
-  base=https://download.gnome.org/sources/libxml2
-  sub=$(curl -fsSL "$base/" | grep -oE 'libxml2/[0-9]+\.[0-9]+/' | sort -V | tail -1)
-  file=$(curl -fsSL "$base/$sub" | grep -oE 'libxml2-[0-9.]+\.tar\.xz' | sort -V | tail -1)
-  url="$base/$sub$file"
+setup_libxml2() {
+  tag=$(curl -fsSL https://api.github.com/repos/GNOME/libxml2/tags | jq -r '.[0].name')
+  url="https://gitlab.gnome.org/GNOME/libxml2/-/archive/${tag}/libxml2-${tag}.tar.gz"
   download -O "$DEPS/libxml2.txz" "$url"
   rm -rf "$DEPS/libxml2" && mkdir "$DEPS/libxml2"
   tar -xJf "$DEPS/libxml2.txz" --strip-components=1 -C "$DEPS/libxml2"
@@ -157,7 +155,7 @@ command -v ninja  >/dev/null || setup_ninja
 setup_zlib_ng
 setup_openssl
 setup_libiconv
-prepare_libxml2
+setup_libxml2
 setup_c_ares
 setup_libssh2
 setup_sqlite
