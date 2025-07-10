@@ -1,0 +1,30 @@
+name: Aria2 CI
+
+permissions:
+  contents: write
+  actions: read
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Check out source (for tag existence)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure and compile
+        run: |
+          chmod a+x build.sh
+          bash ./build.sh
+
+      - name: Upload aria2c binary
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: aria2-static
+          path: aria2/src/aria2c
+
+        
