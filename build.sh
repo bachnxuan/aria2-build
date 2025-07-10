@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # static aria2 build script
-set -euo pipefail
+set -euox pipefail
 
 DEPS=/tmp/aria2-deps
 PREFIX=$(pwd)/build_libs
