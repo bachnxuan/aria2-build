@@ -8,7 +8,7 @@ PREFIX=$(pwd)/build_libs
 sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq --no-install-recommends \
   build-essential curl wget jq unzip xz-utils git autoconf automake libtool \
-  pkg-config ca-certificates
+  pkg-config ca-certificates gettext
 
 mkdir -p "$DEPS" "$PREFIX"
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
