@@ -134,7 +134,7 @@ build_aria2() {
   url="https://github.com/aria2/aria2/releases/download/${tag}/aria2-${ver}.tar.gz"
   download -O "$DEPS/aria2.tgz" "$url"
   rm -rf "$DEPS/aria2" && mkdir "$DEPS/aria2"
-  tar -xzf "$DEPS/aria2.txz" --strip-components=1 -C "$DEPS/aria2"
+  tar -xzf "$DEPS/aria2.tgz" --strip-components=1 -C "$DEPS/aria2"
   cd "$DEPS/aria2"
   CFLAGS="$CFLAGS" \
     CXXFLAGS="$CXXFLAGS" \
