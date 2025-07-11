@@ -56,10 +56,11 @@ jobs:
         env:
           TAG: ${{ steps.release.outputs.release_tag }}
         run: |
-          mkdir compressed && cd compressed
-          tar -cvf - ../aria2c | gzip -9 > "aria2c-$TAG.tar.gz"
-          tar -cf - ../aria2c | xz -9 -e -T0 > "aria2c-$TAG.tar.xz"
-          zip -r -9 "aria2c-$TAG.zip" ../aria2c
+          mkdir compressed && cp ./aria2c compressed && cd compressed
+          
+          tar -cvf - aria2c | gzip -9 > "aria2c-$TAG.tar.gz"
+          tar -cf - aria2c | xz -9 -e -T0 > "aria2c-$TAG.tar.xz"
+          zip -r -9 "aria2c-$TAG.zip" aria2c
 
       - name: Upload aria2c binary
         if: steps.exists.outputs.exists == 'false'
