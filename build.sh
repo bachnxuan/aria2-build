@@ -79,6 +79,7 @@ setup_libxml2() {
   rm -rf "$DEPS/libxml2" && mkdir "$DEPS/libxml2"
   tar -xzf "$DEPS/libxml2.tgz" --strip-components=1 -C "$DEPS/libxml2"
   cd "$DEPS/libxml2"
+  autoreconf -i
   ./configure --prefix="$PREFIX" --without-python --without-icu --disable-shared --enable-static
   make -j"$(nproc)" && make install
   cd -
