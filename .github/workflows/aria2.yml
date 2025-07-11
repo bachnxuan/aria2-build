@@ -72,7 +72,7 @@ jobs:
         with:
           tag_name: ${{ steps.release.outputs.release_tag }}
           name: Aria2 ${{ steps.release.outputs.release_tag }}
-          files: compressed
+          files: ./compressed/**
 
       - name: Telegram Notify
         if: steps.exists.outputs.exists == 'false'
@@ -84,7 +84,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           REPO_URL="$HOST/$REPO"
-          message=$(echo -e "New aria2 version detected: *${TAG_NAME}*\n\nDownload static binary (linux-x86):\n[zip](${REPO_URL}/releases/download/${TAG_NAME}/aria2c-${TAG_NAME}.zip)\n[tar.gz](${REPO_URL}/releases/download/${TAG_NAME}/aria2c-${TAG_NAME}.tar.gz)[tar.gz]\n(${REPO_URL}/releases/download/${TAG_NAME}/aria2c-${TAG_NAME}.zip)")
+          message=$(echo -e "New aria2 version detected: *${TAG_NAME}*\n\nDownload static binary (linux-x86):\n[zip](${REPO_URL}/releases/download/${TAG_NAME}/aria2c-${TAG_NAME}.zip)\n[tar.gz](${REPO_URL}/releases/download/${TAG_NAME}/aria2c-${TAG_NAME}.tar.gz)\n[zip](${REPO_URL}/releases/download/${TAG_NAME}/aria2c-${TAG_NAME}.zip)")
   
           curl -s -X POST "https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage" \
             -d "chat_id=$TG_CHAT_ID" \
