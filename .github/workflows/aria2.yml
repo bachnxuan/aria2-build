@@ -42,135 +42,29 @@ jobs:
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
-
-      - name: Install base tools
-        if: steps.exists.outputs.exists == 'false'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qq build-essential wget tar bzip2 aria2 upx-ucl
-
-      - name: Build Dependencies
-        if: steps.exists.outputs.exists == 'false'
-        env:
-          PREFIX: "/opt/aria2/build_libs"
-          CC: "gcc"
-          CXX: "g++"
-          ZLIB: "https://zlib.net/zlib-1.3.1.tar.gz"
-          OPENSSL: "https://www.openssl.org/source/openssl-3.1.8.tar.gz"
-          EXPAT: "https://github.com/libexpat/libexpat/releases/download/R_2_7_1/expat-2.7.1.tar.bz2"
-          SQLITE3: "https://www.sqlite.org/2025/sqlite-autoconf-3500200.tar.gz"
-          C_ARES: "https://github.com/c-ares/c-ares/releases/download/v1.34.5/c-ares-1.34.5.tar.gz"
-          SSH2: "https://www.libssh2.org/download/libssh2-1.11.1.tar.gz"
-        run: |
-          set -euxo pipefail
-          D=/tmp/aria2-deps
-          export CFLAGS="-O2 -pipe"
-          export CXXFLAGS="-O2 -pipe"
-          mkdir -p "$PREFIX" "$D" && cd "$D"
-
-          # zlib
-          aria2c --check-certificate=false -o zlib.tar.gz "$ZLIB"
-          tar zxvf zlib.tar.gz
-          cd zlib-1.3.1
-          ./configure --prefix="$PREFIX" --static
-          make -j$(nproc) && make install
-          cd "$D"
-
-          # expat
-          aria2c --check-certificate=false -o expat.tar.bz2 "$EXPAT"
-          tar jxvf expat.tar.bz2
-          cd expat-2.7.1
-          ./configure --prefix="$PREFIX" --enable-static --enable-shared
-          make -j$(nproc) && make install
-          cd "$D"
-
-          # c-ares
-          aria2c --check-certificate=false -o cares.tar.gz "$C_ARES"
-          tar zxvf cares.tar.gz
-          cd c-ares-1.34.5
-          ./configure --prefix="$PREFIX" --disable-tests --enable-static --disable-shared
-          make -j$(nproc) && make install
-          cd "$D"
-
-          # OpenSSL
-          aria2c --check-certificate=false -o openssl.tar.gz "$OPENSSL"
-          tar zxvf openssl.tar.gz
-          cd openssl-3.1.8
-          ./Configure --prefix="$PREFIX" linux-x86_64 shared
-          make -j$(nproc) && make install_sw
-          cd "$D"
-
-          # sqlite
-          aria2c --check-certificate=false -o sqlite.tar.gz "$SQLITE3"
-          tar zxvf sqlite.tar.gz
-          cd sqlite-autoconf-3500200
-          ./configure --prefix="$PREFIX" --enable-static --enable-shared
-          make -j$(nproc) && make install
-          cd "$D"
-
-          # libssh2
-          aria2c --check-certificate=false -o libssh2.tar.gz "$SSH2"
-          tar zxvf libssh2.tar.gz
-          cd libssh2-1.11.1
-          rm -f $PREFIX/lib/pkgconfig/libssh2.pc
-          ./configure --without-libgcrypt --with-openssl --without-wincng \
-                      --prefix="$PREFIX" --enable-static --disable-shared
-          make -j$(nproc) && make install
-          cd "$D"
-
-          # cleanup
-          rm -rf c-ares* sqlite-autoconf* zlib-* expat-* openssl-* libssh2-*
-
-      - name: Download aria2
-        if: steps.exists.outputs.exists == 'false'
-        env:
-          URL: ${{ steps.release.outputs.release_url }}
-        run: |
-          curl -LsS -o tarball "$URL"
-          mkdir aria2
-          tar -xvzf tarball -C aria2 --strip-components=1
-          rm -f tarball
-
-      - name: Configure and compile
-        if: steps.exists.outputs.exists == 'false'
-        env:
-          PKG_CONFIG_PATH: /opt/aria2/build_libs/lib/pkgconfig
-          LD_LIBRARY_PATH: /opt/aria2/build_libs/lib
-        run: |
-          set -euxo pipefail
-          export CFLAGS="-O2 -pipe -ffunction-sections -fdata-sections -flto=auto"
-          export CXXFLAGS="$CFLAGS"
-          export LDFLAGS="-s -Wl,--gc-sections -flto=auto -Wl,-Bsymbolic-functions -Wl,-z,relro"
           
-          cd aria2
-          ./configure \
-            --prefix=/usr \
-            --without-libxml2 \
-            --without-libgcrypt \
-            --with-openssl \
-            --without-libnettle \
-            --without-gnutls \
-            --without-libgmp \
-            --disable-metalink \
-            --disable-rpc \
-            --disable-ftp \
-            --disable-bittorrent \
-            --disable-rpc \
-            --with-libssh2 \
-            --with-sqlite3 \
-            --with-ca-bundle='/etc/ssl/certs/ca-certificates.crt' \
-            ARIA2_STATIC=yes \
-            --enable-shared=no
-          make -j$(nproc)
-          strip --strip-all src/aria2c
-          upx --best --lzma src/aria2c
+      - name: Build binary
+        if: steps.exists.outputs.exists == 'false'
+        run: |
+          chmod a+x build.sh
+          bash ./build.sh
+
+      - name: Compress binary
+        if: steps.exists.outputs.exists == 'false'
+        env:
+          TAG: ${{ steps.release.outputs.release_tag }}
+        run: |
+          mkdir compressed && cd compressed
+          tar -cvf - ../aria2c | gzip -9 > "aria2c-$TAG.tar.gz"
+          tar -cf - ../aria2c | xz -9 -e -T0 > "aria2c-$TAG.tar.xz"
+          zip -r -9 "aria2c-$TAG.zip" ../aria2c
 
       - name: Upload aria2c binary
         if: steps.exists.outputs.exists == 'false'
         uses: actions/upload-artifact@v4.3.3
         with:
           name: aria2-static
-          path: aria2/src/aria2c
+          path: compressed
 
       - name: Create GitHub Release
         if: steps.exists.outputs.exists == 'false'
@@ -178,7 +72,7 @@ jobs:
         with:
           tag_name: ${{ steps.release.outputs.release_tag }}
           name: Aria2 ${{ steps.release.outputs.release_tag }}
-          files: aria2/src/aria2c
+          files: compressed
 
       - name: Telegram Notify
         if: steps.exists.outputs.exists == 'false'
@@ -190,7 +84,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           REPO_URL="$HOST/$REPO"
-          message=$(echo -e "New aria2 version detected: *${TAG_NAME}*\n\nDownload static binary (linux-x86):\n[${TAG_NAME}](${REPO_URL}/releases/download/${TAG_NAME}/aria2c)")
+          message=$(echo -e "New aria2 version detected: *${TAG_NAME}*\n\nDownload static binary (linux-x86):\n[zip](${REPO_URL}/releases/download/${TAG_NAME}/aria2c-${TAG_NAME}.zip)\n[tar.gz](${REPO_URL}/releases/download/${TAG_NAME}/aria2c-${TAG_NAME}.tar.gz)[tar.gz]\n(${REPO_URL}/releases/download/${TAG_NAME}/aria2c-${TAG_NAME}.zip)")
   
           curl -s -X POST "https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage" \
             -d "chat_id=$TG_CHAT_ID" \
