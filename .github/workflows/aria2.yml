@@ -64,7 +64,7 @@ jobs:
         uses: actions/upload-artifact@v4.3.3
         with:
           name: aria2-static
-          path: compressed
+          path: ./compressed
 
       - name: Create GitHub Release
         if: steps.exists.outputs.exists == 'false'
