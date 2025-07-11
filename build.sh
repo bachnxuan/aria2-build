@@ -131,12 +131,11 @@ setup_sqlite() {
 build_aria2() {
   tag=$(curl -fsSL https://api.github.com/repos/aria2/aria2/releases/latest | jq -r .tag_name)
   ver=${tag#release-}
-  url="https://github.com/aria2/aria2/releases/download/${tag}/aria2-${ver}.tar.xz"
-  download -O "$DEPS/aria2.txz" "$url"
+  url="https://github.com/aria2/aria2/releases/download/${tag}/aria2-${ver}.tar.gz"
+  download -O "$DEPS/aria2.tgz" "$url"
   rm -rf "$DEPS/aria2" && mkdir "$DEPS/aria2"
-  tar -xJf "$DEPS/aria2.txz" --strip-components=1 -C "$DEPS/aria2"
+  tar -xzf "$DEPS/aria2.txz" --strip-components=1 -C "$DEPS/aria2"
   cd "$DEPS/aria2"
-  autoreconf -fi
   CFLAGS="$CFLAGS" \
     CXXFLAGS="$CXXFLAGS" \
     LDFLAGS="$LDFLAGS -s -Wl,--gc-sections" \
