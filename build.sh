@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# static aria2 build script
+# Aria2 static binary build script
+# Inspired from abcfy2/aria2-static-build
+# by @bachnxuan
+
 set -euox pipefail
 
 DEPS=/tmp/aria2-deps
