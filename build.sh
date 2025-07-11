@@ -75,9 +75,9 @@ setup_libiconv() {
 setup_libxml2() {
   tag=$(curl -fsSL https://api.github.com/repos/GNOME/libxml2/tags | jq -r '.[0].name')
   url="https://gitlab.gnome.org/GNOME/libxml2/-/archive/${tag}/libxml2-${tag}.tar.gz"
-  download -O "$DEPS/libxml2.txz" "$url"
+  download -O "$DEPS/libxml2.tgz" "$url"
   rm -rf "$DEPS/libxml2" && mkdir "$DEPS/libxml2"
-  tar -xJf "$DEPS/libxml2.txz" --strip-components=1 -C "$DEPS/libxml2"
+  tar -xzf "$DEPS/libxml2.tgz" --strip-components=1 -C "$DEPS/libxml2"
   cd "$DEPS/libxml2"
   ./configure --prefix="$PREFIX" --without-python --without-icu --disable-shared --enable-static
   make -j"$(nproc)" && make install
