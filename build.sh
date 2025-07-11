@@ -103,7 +103,7 @@ setup_libssh2() {
   tag=$(curl -fsSL https://api.github.com/repos/libssh2/libssh2/releases/latest \
           | jq -r .tag_name)
   ver=${tag#libssh2-}
-  url="https://github.com/libssh2/libssh2/releases/download/${ver}/libssh2-${ver}.tar.gz"
+  url="https://github.com/libssh2/libssh2/releases/download/${tag}/libssh2-${ver}.tar.gz"
   download -O "$DEPS/libssh2.tgz" "$url"
   rm -rf "$DEPS/libssh2" && mkdir "$DEPS/libssh2"
   tar -xzf "$DEPS/libssh2.tgz" --strip-components=1 -C "$DEPS/libssh2"
