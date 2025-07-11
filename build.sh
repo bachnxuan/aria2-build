@@ -15,6 +15,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq --no-install-recommends 
 
 mkdir -p "$DEPS" "$PREFIX"
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+export CC="ccache gcc"
+export CXX="ccache g++"
 export CPPFLAGS="-I$PREFIX/include"
 export LDFLAGS="-L$PREFIX/lib -static"
 export CFLAGS="-O2 -pipe -ffunction-sections -fdata-sections"
