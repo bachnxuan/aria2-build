@@ -11,7 +11,7 @@ PREFIX=$(pwd)/build_libs
 sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq --no-install-recommends \
   build-essential curl wget jq unzip xz-utils git autoconf automake libtool \
-  pkg-config ca-certificates gettext
+  pkg-config ca-certificates gettext upx
 
 mkdir -p "$DEPS" "$PREFIX"
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
@@ -151,6 +151,7 @@ build_aria2() {
     --without-gnutls --without-libnettle --without-libgmp
   make -j"$(nproc)"
   strip --strip-all src/aria2c
+  upx --best --lzma src/aria2c
   cp src/aria2c "$OLDPWD/aria2c"
   cd -
 }
