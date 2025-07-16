@@ -70,6 +70,8 @@ jobs:
           tar -cf - aria2c | xz -9 -e -T0 > "aria2c-$TAG.tar.xz"
           zip -r -9 "aria2c-$TAG.zip" aria2c
 
+          rm -rf aria2c
+
       - name: Upload aria2c binary
         if: steps.exists.outputs.exists == 'false'
         uses: actions/upload-artifact@v4.3.3
